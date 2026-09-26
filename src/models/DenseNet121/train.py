@@ -51,7 +51,7 @@ CHECKPOINT_PATH = (
 
 # configuration
 BATCH_SIZE = 16
-NUM_EPOCHS = 2       
+NUM_EPOCHS = 20       
 LEARNING_RATE = 1e-4
 WEIGHT_DECAY = 1e-4
 NUM_CLASSES = 5

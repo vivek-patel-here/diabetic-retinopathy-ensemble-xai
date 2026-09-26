@@ -73,7 +73,6 @@ class Trainer:
 
     # Training
     def train_one_epoch(self):
-
         self.model.train()
 
         running_loss = 0.0
@@ -81,13 +80,12 @@ class Trainer:
         all_predictions = []
         all_labels = []
 
-        progress_bar = tqdm(
-            self.train_loader,
-            desc="Training",
-            leave=False,
-        )
+        total_batches = len(self.train_loader)
 
-        for batch in progress_bar:
+        for batch_idx, batch in enumerate(
+            self.train_loader,
+            start=1
+        ):
 
             images = batch["image"].to(self.device)
             labels = batch["label"].to(self.device)
@@ -98,7 +96,7 @@ class Trainer:
 
             loss = self.criterion(
                 outputs,
-                labels,
+                labels
             )
 
             loss.backward()
@@ -113,7 +111,7 @@ class Trainer:
 
             predictions = torch.argmax(
                 outputs,
-                dim=1,
+                dim=1
             )
 
             all_predictions.extend(
@@ -128,9 +126,21 @@ class Trainer:
                 .numpy()
             )
 
-            progress_bar.set_postfix(
-                loss=f"{loss.item():.4f}"
-            )
+            # Print progress every 100 batches
+            if (
+                batch_idx % 100 == 0
+                or batch_idx == total_batches
+            ):
+                progress = (
+                    batch_idx / total_batches
+                ) * 100
+
+                print(
+                    f"Training: "
+                    f"{batch_idx}/{total_batches} "
+                    f"({progress:.1f}%) "
+                    f"| Loss: {loss.item():.4f}"
+                )
 
         epoch_loss = (
             running_loss
@@ -139,26 +149,25 @@ class Trainer:
 
         accuracy = accuracy_score(
             all_labels,
-            all_predictions,
+            all_predictions
         )
 
         macro_f1 = f1_score(
             all_labels,
             all_predictions,
             average="macro",
-            zero_division=0,
+            zero_division=0
         )
 
         return {
             "loss": epoch_loss,
             "accuracy": accuracy,
-            "macro_f1": macro_f1,
+            "macro_f1": macro_f1
         }
 
     # Validation
     @torch.no_grad()
     def validate(self):
-
         self.model.eval()
 
         running_loss = 0.0
@@ -166,13 +175,12 @@ class Trainer:
         all_predictions = []
         all_labels = []
 
-        progress_bar = tqdm(
-            self.val_loader,
-            desc="Validation",
-            leave=False,
-        )
+        total_batches = len(self.val_loader)
 
-        for batch in progress_bar:
+        for batch_idx, batch in enumerate(
+            self.val_loader,
+            start=1
+        ):
 
             images = batch["image"].to(
                 self.device
@@ -189,6 +197,7 @@ class Trainer:
                 labels,
             )
 
+            # Statistics
             batch_size = images.size(0)
 
             running_loss += (
@@ -210,20 +219,36 @@ class Trainer:
                 .numpy()
             )
 
-            progress_bar.set_postfix(
-                loss=f"{loss.item():.4f}"
-            )
+            # Print progress every 50 batches
+            if (
+                batch_idx % 50 == 0
+                or batch_idx == total_batches
+            ):
 
+                progress = (
+                    batch_idx / total_batches
+                ) * 100
+
+                print(
+                    f"Validation: "
+                    f"{batch_idx}/{total_batches} "
+                    f"({progress:.1f}%) "
+                    f"| Loss: {loss.item():.4f}"
+                )
+
+        # Epoch loss
         epoch_loss = (
             running_loss
             / len(self.val_loader.dataset)
         )
 
+        # Accuracy
         accuracy = accuracy_score(
             all_labels,
             all_predictions,
         )
 
+        # Macro F1
         macro_f1 = f1_score(
             all_labels,
             all_predictions,
@@ -231,7 +256,7 @@ class Trainer:
             zero_division=0,
         )
 
-        # Quadratic Weighted Kappa.
+        # Quadratic Weighted Kappa
         qwk = cohen_kappa_score(
             all_labels,
             all_predictions,
@@ -244,7 +269,6 @@ class Trainer:
             "macro_f1": macro_f1,
             "qwk": qwk,
         }
-
 
     # Save checkpoint
     def save_checkpoint(
